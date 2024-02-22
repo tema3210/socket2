@@ -48,7 +48,7 @@ features = [
 ]
 
 [target.'cfg(target_os = "hermit")'.dependencies]
-hermit-abi = { version = "0.3.6" }
+hermit-abi = { version = "0.3.8" }
 
 [features]
 # Enable all API, even ones not available on all OSs.

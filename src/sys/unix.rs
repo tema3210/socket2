@@ -59,11 +59,10 @@ use std::os::unix::ffi::OsStrExt;
         target_os = "watchos",
     )
 ))]
-#[cfg(unix)]
 use std::os::unix::io::RawFd;
 #[cfg(unix)]
 use std::os::unix::io::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, OwnedFd};
-#[cfg(feature = "all")]
+#[cfg(all(feature = "all", not(target_os = "hermit")))]
 use std::os::unix::net::{UnixDatagram, UnixListener, UnixStream};
 use std::path::Path;
 use std::ptr;
@@ -97,9 +96,12 @@ pub(crate) use libc::{AF_INET, AF_INET6, AF_UNIX};
 // Used in `Type`.
 #[cfg(all(feature = "all", target_os = "linux"))]
 pub(crate) use libc::SOCK_DCCP;
-#[cfg(all(feature = "all", not(any(target_os = "redox", target_os = "espidf"))))]
+#[cfg(all(
+    feature = "all",
+    not(any(target_os = "redox", target_os = "hermit", target_os = "espidf"))
+))]
 pub(crate) use libc::SOCK_RAW;
-#[cfg(all(feature = "all", not(target_os = "espidf")))]
+#[cfg(all(feature = "all", not(any(target_os = "espidf", target_os = "hermit"))))]
 pub(crate) use libc::SOCK_SEQPACKET;
 pub(crate) use libc::{SOCK_DGRAM, SOCK_STREAM};
 // Used in `Protocol`.
@@ -179,7 +181,6 @@ pub(crate) use libc::IP_RECVTOS;
     target_os = "solaris",
     target_os = "haiku",
     target_os = "illumos",
-    target_os = "hermit",
 )))]
 pub(crate) use libc::IP_TOS;
 #[cfg(not(any(
@@ -187,7 +188,6 @@ pub(crate) use libc::IP_TOS;
     target_os = "macos",
     target_os = "tvos",
     target_os = "watchos",
-    target_os = "hermit",
 )))]
 pub(crate) use libc::SO_LINGER;
 #[cfg(any(
@@ -197,12 +197,12 @@ pub(crate) use libc::SO_LINGER;
     target_os = "watchos",
 ))]
 pub(crate) use libc::SO_LINGER_SEC as SO_LINGER;
+pub(crate) use libc::{linger, IPPROTO_IP, SO_RCVBUF, SO_RCVTIMEO, SO_SNDBUF, SO_KEEPALIVE};
 #[cfg(unix)]
 pub(crate) use libc::{
-    ip_mreq as IpMreq, linger, IPPROTO_IP, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_IF,
+    ip_mreq as IpMreq, IPPROTO_IP, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_IF,
     IPV6_MULTICAST_LOOP, IPV6_UNICAST_HOPS, IPV6_V6ONLY, IP_ADD_MEMBERSHIP, IP_DROP_MEMBERSHIP,
-    IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IP_TTL, MSG_OOB, SO_BROADCAST,
-    SO_KEEPALIVE, SO_RCVBUF, SO_RCVTIMEO, SO_SNDBUF, SO_TYPE,
+    IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IP_TTL, MSG_OOB, SO_BROADCAST, SO_TYPE,
 };
 #[cfg(not(any(
     target_os = "dragonfly",
@@ -269,7 +269,6 @@ pub(crate) use libc::{
         target_os = "netbsd",
         target_os = "tvos",
         target_os = "watchos",
-        target_os = "hermit",
     )
 ))]
 pub(crate) use libc::{TCP_KEEPCNT, TCP_KEEPINTVL};
@@ -1251,13 +1250,23 @@ fn into_timeval(duration: Option<Duration>) -> libc::timeval {
 
 #[cfg(all(
     feature = "all",
-    not(any(target_os = "haiku", target_os = "openbsd", target_os = "vita"))
+    not(any(
+        target_os = "haiku",
+        target_os = "openbsd",
+        target_os = "hermit",
+        target_os = "vita"
+    ))
 ))]
 #[cfg_attr(
     docsrs,
     doc(cfg(all(
         feature = "all",
-        not(any(target_os = "haiku", target_os = "openbsd", target_os = "vita"))
+        not(any(
+            target_os = "haiku",
+            target_os = "openbsd",
+            target_os = "hermit",
+            target_os = "vita"
+        ))
     )))
 )]
 pub(crate) fn keepalive_time(fd: Socket) -> io::Result<Duration> {
@@ -1603,8 +1612,15 @@ impl crate::Socket {
     /// For more information about this option, see [`set_mss`].
     ///
     /// [`set_mss`]: crate::Socket::set_mss
-    #[cfg(all(feature = "all", not(target_os = "redox")))]
-    #[cfg_attr(docsrs, doc(cfg(all(feature = "all", unix, not(target_os = "redox")))))]
+    #[cfg(all(feature = "all", not(any(target_os = "redox", target_os = "hermit"))))]
+    #[cfg_attr(
+        docsrs,
+        doc(cfg(all(
+            feature = "all",
+            unix,
+            not(any(target_os = "redox", target_os = "hermit"))
+        )))
+    )]
     pub fn mss(&self) -> io::Result<u32> {
         unsafe {
             getsockopt::<c_int>(self.as_raw(), libc::IPPROTO_TCP, libc::TCP_MAXSEG)
@@ -1616,8 +1632,15 @@ impl crate::Socket {
     ///
     /// The `TCP_MAXSEG` option denotes the TCP Maximum Segment Size and is only
     /// available on TCP sockets.
-    #[cfg(all(feature = "all", not(target_os = "redox")))]
-    #[cfg_attr(docsrs, doc(cfg(all(feature = "all", unix, not(target_os = "redox")))))]
+    #[cfg(all(feature = "all", not(any(target_os = "redox", target_os = "hermit"))))]
+    #[cfg_attr(
+        docsrs,
+        doc(cfg(all(
+            feature = "all",
+            unix,
+            not(any(target_os = "redox", target_os = "hermit"))
+        )))
+    )]
     pub fn set_mss(&self, mss: u32) -> io::Result<()> {
         unsafe {
             setsockopt(
@@ -2242,14 +2265,14 @@ impl crate::Socket {
     /// [`set_reuse_port`]: crate::Socket::set_reuse_port
     #[cfg(all(
         feature = "all",
-        not(any(target_os = "solaris", target_os = "illumos"))
+        not(any(target_os = "solaris", target_os = "illumos", target_os = "hermit"))
     ))]
     #[cfg_attr(
         docsrs,
         doc(cfg(all(
             feature = "all",
             unix,
-            not(any(target_os = "solaris", target_os = "illumos"))
+            not(any(target_os = "solaris", target_os = "illumos", target_os = "hermit"))
         )))
     )]
     pub fn reuse_port(&self) -> io::Result<bool> {
@@ -2266,14 +2289,14 @@ impl crate::Socket {
     /// there's a socket already listening on this port.
     #[cfg(all(
         feature = "all",
-        not(any(target_os = "solaris", target_os = "illumos"))
+        not(any(target_os = "solaris", target_os = "illumos", target_os = "hermit"))
     ))]
     #[cfg_attr(
         docsrs,
         doc(cfg(all(
             feature = "all",
             unix,
-            not(any(target_os = "solaris", target_os = "illumos"))
+            not(any(target_os = "solaris", target_os = "illumos", target_os = "hermit"))
         )))
     )]
     pub fn set_reuse_port(&self, reuse: bool) -> io::Result<()> {
@@ -3191,17 +3214,17 @@ impl FromRawFd for crate::Socket {
     }
 }
 
-#[cfg(feature = "all")]
+#[cfg(all(feature = "all", not(target_os = "hermit")))]
 from!(UnixStream, crate::Socket);
-#[cfg(feature = "all")]
+#[cfg(all(feature = "all", not(target_os = "hermit")))]
 from!(UnixListener, crate::Socket);
-#[cfg(feature = "all")]
+#[cfg(all(feature = "all", not(target_os = "hermit")))]
 from!(UnixDatagram, crate::Socket);
-#[cfg(feature = "all")]
+#[cfg(all(feature = "all", not(target_os = "hermit")))]
 from!(crate::Socket, UnixStream);
-#[cfg(feature = "all")]
+#[cfg(all(feature = "all", not(target_os = "hermit")))]
 from!(crate::Socket, UnixListener);
-#[cfg(feature = "all")]
+#[cfg(all(feature = "all", not(target_os = "hermit")))]
 from!(crate::Socket, UnixDatagram);
 
 #[test]

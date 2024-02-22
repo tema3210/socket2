@@ -274,15 +274,24 @@ impl Type {
     pub const DCCP: Type = Type(sys::SOCK_DCCP);
 
     /// Type corresponding to `SOCK_SEQPACKET`.
-    #[cfg(all(feature = "all", not(target_os = "espidf")))]
-    #[cfg_attr(docsrs, doc(cfg(all(feature = "all", not(target_os = "espidf")))))]
+    #[cfg(all(feature = "all", not(any(target_os = "espidf", target_os = "hermit"))))]
+    #[cfg_attr(
+        docsrs,
+        doc(cfg(all(feature = "all", not(any(target_os = "espidf", target_os = "hermit")))))
+    )]
     pub const SEQPACKET: Type = Type(sys::SOCK_SEQPACKET);
 
     /// Type corresponding to `SOCK_RAW`.
-    #[cfg(all(feature = "all", not(any(target_os = "redox", target_os = "espidf"))))]
+    #[cfg(all(
+        feature = "all",
+        not(any(target_os = "redox", target_os = "hermit", target_os = "espidf"))
+    ))]
     #[cfg_attr(
         docsrs,
-        doc(cfg(all(feature = "all", not(any(target_os = "redox", target_os = "espidf")))))
+        doc(cfg(all(
+            feature = "all",
+            not(any(target_os = "redox", target_os = "hermit", target_os = "espidf"))
+        )))
     )]
     pub const RAW: Type = Type(sys::SOCK_RAW);
 }

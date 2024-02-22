@@ -14,7 +14,7 @@ use std::mem::MaybeUninit;
 #[cfg(not(target_os = "nto"))]
 use std::net::Ipv6Addr;
 use std::net::{self, Ipv4Addr, Shutdown};
-#[cfg(not(target_os = "redox"))]
+#[cfg(target_os = "hermit")]
 use std::os::hermit::io::{FromRawFd, IntoRawFd};
 #[cfg(unix)]
 use std::os::unix::io::{FromRawFd, IntoRawFd};
@@ -886,7 +886,6 @@ impl Socket {
     /// For more information about this option, see [`set_keepalive`].
     ///
     /// [`set_keepalive`]: Socket::set_keepalive
-    #[cfg(not(target_os = "hermit"))]
     pub fn keepalive(&self) -> io::Result<bool> {
         unsafe {
             getsockopt::<Bool>(self.as_raw(), sys::SOL_SOCKET, sys::SO_KEEPALIVE)
@@ -897,7 +896,6 @@ impl Socket {
     /// Set value for the `SO_KEEPALIVE` option on this socket.
     ///
     /// Enable sending of keep-alive messages on connection-oriented sockets.
-    #[cfg(not(target_os = "hermit"))]
     pub fn set_keepalive(&self, keepalive: bool) -> io::Result<()> {
         unsafe {
             setsockopt(
@@ -914,7 +912,6 @@ impl Socket {
     /// For more information about this option, see [`set_linger`].
     ///
     /// [`set_linger`]: Socket::set_linger
-    #[cfg(not(target_os = "hermit"))]
     pub fn linger(&self) -> io::Result<Option<Duration>> {
         unsafe {
             getsockopt::<sys::linger>(self.as_raw(), sys::SOL_SOCKET, sys::SO_LINGER)
@@ -936,7 +933,6 @@ impl Socket {
     /// silently truncated.
     ///
     /// On Apple platforms (e.g. macOS, iOS, etc) this uses `SO_LINGER_SEC`.
-    #[cfg(not(target_os = "hermit"))]
     pub fn set_linger(&self, linger: Option<Duration>) -> io::Result<()> {
         let linger = into_linger(linger);
         unsafe { setsockopt(self.as_raw(), sys::SOL_SOCKET, sys::SO_LINGER, linger) }
@@ -948,7 +944,7 @@ impl Socket {
     ///
     /// [`set_out_of_band_inline`]: Socket::set_out_of_band_inline
     #[cfg(not(any(target_os = "redox", target_os = "hermit")))]
-    #[cfg_attr(docsrs, doc(cfg(not(target_os = "redox"))))]
+    #[cfg_attr(docsrs, doc(cfg(not(any(target_os = "redox", target_os = "hermit")))))]
     pub fn out_of_band_inline(&self) -> io::Result<bool> {
         unsafe {
             getsockopt::<c_int>(self.as_raw(), sys::SOL_SOCKET, sys::SO_OOBINLINE)
@@ -980,7 +976,6 @@ impl Socket {
     /// For more information about this option, see [`set_recv_buffer_size`].
     ///
     /// [`set_recv_buffer_size`]: Socket::set_recv_buffer_size
-    #[cfg(not(target_os = "hermit"))]
     pub fn recv_buffer_size(&self) -> io::Result<usize> {
         unsafe {
             getsockopt::<c_int>(self.as_raw(), sys::SOL_SOCKET, sys::SO_RCVBUF)
@@ -992,7 +987,6 @@ impl Socket {
     ///
     /// Changes the size of the operating system's receive buffer associated
     /// with the socket.
-    #[cfg(not(target_os = "hermit"))]
     pub fn set_recv_buffer_size(&self, size: usize) -> io::Result<()> {
         unsafe {
             setsockopt(
@@ -1008,7 +1002,6 @@ impl Socket {
     ///
     /// If the returned timeout is `None`, then `read` and `recv` calls will
     /// block indefinitely.
-    #[cfg(not(target_os = "hermit"))]
     pub fn read_timeout(&self) -> io::Result<Option<Duration>> {
         sys::timeout_opt(self.as_raw(), sys::SOL_SOCKET, sys::SO_RCVTIMEO)
     }
@@ -1017,7 +1010,6 @@ impl Socket {
     ///
     /// If `timeout` is `None`, then `read` and `recv` calls will block
     /// indefinitely.
-    #[cfg(not(target_os = "hermit"))]
     pub fn set_read_timeout(&self, duration: Option<Duration>) -> io::Result<()> {
         sys::set_timeout_opt(self.as_raw(), sys::SOL_SOCKET, sys::SO_RCVTIMEO, duration)
     }
@@ -1055,7 +1047,6 @@ impl Socket {
     /// For more information about this option, see [`set_send_buffer_size`].
     ///
     /// [`set_send_buffer_size`]: Socket::set_send_buffer_size
-    #[cfg(not(target_os = "hermit"))]
     pub fn send_buffer_size(&self) -> io::Result<usize> {
         unsafe {
             getsockopt::<c_int>(self.as_raw(), sys::SOL_SOCKET, sys::SO_SNDBUF)
@@ -1067,7 +1058,6 @@ impl Socket {
     ///
     /// Changes the size of the operating system's send buffer associated with
     /// the socket.
-    #[cfg(not(target_os = "hermit"))]
     pub fn set_send_buffer_size(&self, size: usize) -> io::Result<()> {
         unsafe {
             setsockopt(
@@ -1096,7 +1086,6 @@ impl Socket {
     }
 }
 
-#[cfg(not(target_os = "hermit"))]
 const fn from_linger(linger: sys::linger) -> Option<Duration> {
     if linger.l_onoff == 0 {
         None
@@ -1105,7 +1094,6 @@ const fn from_linger(linger: sys::linger) -> Option<Duration> {
     }
 }
 
-#[cfg(not(target_os = "hermit"))]
 const fn into_linger(duration: Option<Duration>) -> sys::linger {
     match duration {
         Some(duration) => sys::linger {
@@ -1578,7 +1566,6 @@ impl Socket {
         target_os = "solaris",
         target_os = "illumos",
         target_os = "haiku",
-        target_os = "hermit",
     )))]
     pub fn set_tos(&self, tos: u32) -> io::Result<()> {
         unsafe { setsockopt(self.as_raw(), sys::IPPROTO_IP, sys::IP_TOS, tos as c_int) }
@@ -1598,7 +1585,6 @@ impl Socket {
         target_os = "solaris",
         target_os = "illumos",
         target_os = "haiku",
-        target_os = "hermit",
     )))]
     pub fn tos(&self) -> io::Result<u32> {
         unsafe {
@@ -1992,7 +1978,6 @@ impl Socket {
                 target_os = "haiku",
                 target_os = "openbsd",
                 target_os = "vita",
-                target_os = "hermit",
             ))
         )))
     )]
@@ -2019,7 +2004,6 @@ impl Socket {
             target_os = "netbsd",
             target_os = "tvos",
             target_os = "watchos",
-            target_os = "hermit",
         )
     ))]
     #[cfg_attr(
@@ -2038,7 +2022,6 @@ impl Socket {
                 target_os = "netbsd",
                 target_os = "tvos",
                 target_os = "watchos",
-                target_os = "hermit",
             )
         )))
     )]
@@ -2068,7 +2051,6 @@ impl Socket {
             target_os = "netbsd",
             target_os = "tvos",
             target_os = "watchos",
-            target_os = "hermit",
         )
     ))]
     #[cfg_attr(
@@ -2087,7 +2069,6 @@ impl Socket {
                 target_os = "netbsd",
                 target_os = "tvos",
                 target_os = "watchos",
-                target_os = "hermit",
             )
         )))
     )]
@@ -2136,7 +2117,6 @@ impl Socket {
     /// # Ok(()) }
     /// ```
     ///
-    #[cfg(not(target_os = "hermit"))]
     pub fn set_tcp_keepalive(&self, params: &TcpKeepalive) -> io::Result<()> {
         self.set_keepalive(true)?;
         sys::set_tcp_keepalive(self.as_raw(), params)
