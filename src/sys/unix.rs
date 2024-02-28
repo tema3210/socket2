@@ -197,12 +197,11 @@ pub(crate) use libc::SO_LINGER;
     target_os = "watchos",
 ))]
 pub(crate) use libc::SO_LINGER_SEC as SO_LINGER;
-pub(crate) use libc::{linger, IPPROTO_IP, SO_RCVBUF, SO_RCVTIMEO, SO_SNDBUF, SO_KEEPALIVE};
 #[cfg(unix)]
 pub(crate) use libc::{
-    ip_mreq as IpMreq, IPPROTO_IP, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_IF,
-    IPV6_MULTICAST_LOOP, IPV6_UNICAST_HOPS, IPV6_V6ONLY, IP_ADD_MEMBERSHIP, IP_DROP_MEMBERSHIP,
-    IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IP_TTL, MSG_OOB, SO_BROADCAST, SO_TYPE,
+    ip_mreq as IpMreq, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP,
+    IPV6_UNICAST_HOPS, IPV6_V6ONLY, IP_ADD_MEMBERSHIP, IP_DROP_MEMBERSHIP, IP_MULTICAST_IF,
+    IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IP_TTL, MSG_OOB, SO_TYPE,
 };
 #[cfg(not(any(
     target_os = "dragonfly",
@@ -220,6 +219,7 @@ pub(crate) use libc::{
 pub(crate) use libc::{
     ip_mreq_source as IpMreqSource, IP_ADD_SOURCE_MEMBERSHIP, IP_DROP_SOURCE_MEMBERSHIP,
 };
+pub(crate) use libc::{linger, IPPROTO_IP, SO_KEEPALIVE, SO_RCVBUF, SO_RCVTIMEO, SO_SNDBUF};
 pub(crate) use libc::{
     IPPROTO_IPV6, MSG_PEEK, SOL_SOCKET, SO_BROADCAST, SO_ERROR, SO_REUSEADDR, SO_SNDTIMEO,
     TCP_NODELAY,
