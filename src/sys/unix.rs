@@ -330,6 +330,7 @@ macro_rules! syscall {
             Ok(res)
         }
         #[cfg(unix)]
+        #[allow(unused_unsafe)]
         let res = unsafe { libc::$fn($($arg, )*) };
         #[cfg(unix)]
         if res == -1 {
