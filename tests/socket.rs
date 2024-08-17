@@ -53,7 +53,7 @@ use std::{env, fs};
 #[cfg(windows)]
 use windows_sys::Win32::Foundation::{GetHandleInformation, HANDLE_FLAG_INHERIT};
 
-#[cfg(not(any(target_os = "redox", target_os = "vita")))]
+#[cfg(not(any(target_os = "redox", target_os = "vita", target_os = "hermit")))]
 use socket2::MaybeUninitSlice;
 #[cfg(not(target_os = "vita"))]
 use socket2::TcpKeepalive;
@@ -75,6 +75,7 @@ fn domain_fmt_debug() {
     let tests = &[
         (Domain::IPV4, "AF_INET"),
         (Domain::IPV6, "AF_INET6"),
+        #[cfg(not(target_os = "hermit"))]
         (Domain::UNIX, "AF_UNIX"),
         #[cfg(all(feature = "all", any(target_os = "fuchsia", target_os = "linux")))]
         (Domain::PACKET, "AF_PACKET"),
@@ -117,7 +118,9 @@ fn type_fmt_debug() {
 #[test]
 fn protocol_fmt_debug() {
     let tests = &[
+        #[cfg(not(target_os = "hermit"))]
         (Protocol::ICMPV4, "IPPROTO_ICMP"),
+        #[cfg(not(target_os = "hermit"))]
         (Protocol::ICMPV6, "IPPROTO_ICMPV6"),
         (Protocol::TCP, "IPPROTO_TCP"),
         (Protocol::UDP, "IPPROTO_UDP"),
@@ -148,6 +151,7 @@ fn from_invalid_raw_fd_should_panic() {
 }
 
 #[test]
+#[cfg(not(target_os = "hermit"))]
 fn socket_address_unix() {
     let string = "/tmp/socket";
     let addr = SockAddr::unix(string).unwrap();
@@ -168,6 +172,7 @@ fn socket_address_unix() {
 }
 
 #[test]
+#[cfg(not(target_os = "hermit"))]
 fn socket_address_unix_unnamed() {
     let addr = SockAddr::unix("").unwrap();
     assert!(addr.as_socket_ipv4().is_none());
@@ -329,6 +334,12 @@ pub fn assert_nonblocking(socket: &Socket, want: bool) {
 #[track_caller]
 pub fn assert_nonblocking(_: &Socket, _: bool) {
     // No way to get this information...
+}
+
+#[cfg(target_os = "hermit")]
+#[track_caller]
+pub fn assert_nonblocking(_: &Socket, _: bool) {
+    //TODO: implement it
 }
 
 #[cfg(all(unix, feature = "all", not(target_os = "vita")))]
@@ -555,6 +566,7 @@ fn unix_sockets_supported() -> bool {
 }
 
 #[test]
+#[cfg(not(target_os = "hermit"))]
 fn unix() {
     if !unix_sockets_supported() {
         return;
@@ -606,7 +618,7 @@ fn vsock() {
 }
 
 #[test]
-#[cfg(not(target_os = "vita"))] // Vita does not support OOB
+#[cfg(not(any(target_os = "vita", target_os = "hermit")))] // Vita does not support OOB
 fn out_of_band() {
     let listener = Socket::new(Domain::IPV4, Type::STREAM, None).unwrap();
     listener.bind(&any_ipv4()).unwrap();
@@ -652,7 +664,7 @@ fn udp_peek_sender() {
 }
 
 #[test]
-#[cfg(not(any(target_os = "redox", target_os = "vita")))]
+#[cfg(not(any(target_os = "redox", target_os = "vita", target_os = "hermit")))]
 fn send_recv_vectored() {
     let (socket_a, socket_b) = udp_pair_connected();
 
@@ -699,7 +711,7 @@ fn send_recv_vectored() {
 }
 
 #[test]
-#[cfg(not(any(target_os = "redox", target_os = "vita")))]
+#[cfg(not(any(target_os = "redox", target_os = "vita", target_os = "hermit")))]
 fn send_from_recv_to_vectored() {
     let (socket_a, socket_b) = udp_pair_unconnected();
     let addr_a = socket_a.local_addr().unwrap();
@@ -752,7 +764,7 @@ fn send_from_recv_to_vectored() {
 }
 
 #[test]
-#[cfg(not(any(target_os = "redox", target_os = "vita")))]
+#[cfg(not(any(target_os = "redox", target_os = "vita", target_os = "hermit")))]
 fn sendmsg() {
     let (socket_a, socket_b) = udp_pair_unconnected();
 
@@ -770,7 +782,7 @@ fn sendmsg() {
 }
 
 #[test]
-#[cfg(not(any(target_os = "redox", target_os = "vita")))]
+#[cfg(not(any(target_os = "redox", target_os = "vita", target_os = "hermit")))]
 fn recv_vectored_truncated() {
     let (socket_a, socket_b) = udp_pair_connected();
 
@@ -790,7 +802,7 @@ fn recv_vectored_truncated() {
 }
 
 #[test]
-#[cfg(not(any(target_os = "redox", target_os = "vita")))]
+#[cfg(not(any(target_os = "redox", target_os = "vita", target_os = "hermit")))]
 fn recv_from_vectored_truncated() {
     let (socket_a, socket_b) = udp_pair_unconnected();
     let addr_a = socket_a.local_addr().unwrap();
@@ -1223,6 +1235,7 @@ fn protocol() {
 }
 
 #[test]
+#[cfg(not(target_os = "hermit"))]
 fn r#type() {
     let socket = Socket::new(Domain::IPV4, Type::STREAM, None).unwrap();
     assert_eq!(socket.r#type().unwrap(), Type::STREAM);
@@ -1347,7 +1360,7 @@ test!(
     set_send_buffer_size(SET_BUF_SIZE),
     GET_BUF_SIZE
 );
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "hermit")))]
 test!(out_of_band_inline, set_out_of_band_inline(true));
 test!(reuse_address, set_reuse_address(true));
 #[cfg(all(
@@ -1401,6 +1414,7 @@ test!(freebind, set_freebind(true));
 #[cfg(all(feature = "all", target_os = "linux"))]
 test!(IPv6 freebind_ipv6, set_freebind_ipv6(true));
 
+#[cfg(not(target_os = "hermit"))]
 test!(IPv4 ttl, set_ttl(40));
 
 #[cfg(not(any(
@@ -1424,13 +1438,14 @@ test!(IPv4 tos, set_tos(96));
     target_os = "windows",
     target_os = "vita",
     target_os = "haiku",
+    target_os = "hermit",
 )))]
 test!(IPv4 recv_tos, set_recv_tos(true));
 
 #[cfg(not(windows))] // TODO: returns `WSAENOPROTOOPT` (10042) on Windows.
 test!(IPv4 broadcast, set_broadcast(true));
 
-#[cfg(not(target_os = "vita"))]
+#[cfg(not(any(target_os = "vita", target_os = "hermit")))]
 test!(IPv6 unicast_hops_v6, set_unicast_hops_v6(20));
 
 #[cfg(not(any(
@@ -1438,7 +1453,8 @@ test!(IPv6 unicast_hops_v6, set_unicast_hops_v6(20));
     target_os = "dragonfly",
     target_os = "freebsd",
     target_os = "openbsd",
-    target_os = "vita"
+    target_os = "vita",
+    target_os = "hermit",
 )))]
 test!(IPv6 only_v6, set_only_v6(true));
 // IPv6 socket are already IPv6 only on FreeBSD and Windows.
@@ -1472,6 +1488,7 @@ test!(IPv6 tclass_v6, set_tclass_v6(96));
     target_os = "windows",
     target_os = "vita",
     target_os = "haiku",
+    target_os = "hermit",
 )))]
 test!(IPv6 recv_tclass_v6, set_recv_tclass_v6(true));
 
@@ -1498,6 +1515,7 @@ test!(IPv6 multicast_all_v6, set_multicast_all_v6(false));
     target_os = "redox",
     target_os = "solaris",
     target_os = "vita",
+    target_os = "hermit",
 )))]
 fn join_leave_multicast_v4_n() {
     let socket = Socket::new(Domain::IPV4, Type::DGRAM, None).unwrap();
@@ -1529,6 +1547,7 @@ fn join_leave_multicast_v4_n() {
     target_os = "redox",
     target_os = "fuchsia",
     target_os = "vita",
+    target_os = "hermit",
 )))]
 fn join_leave_ssm_v4() {
     let socket = Socket::new(Domain::IPV4, Type::DGRAM, None).unwrap();
